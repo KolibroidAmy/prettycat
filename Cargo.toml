@@ -1,0 +1,18 @@
+[package]
+name = "prettycat"
+version = "0.1.0"
+edition = "2021"
+description = "A version of cat, which supports adding pretty colours to the output :)"
+authors = ["KolidroidAmy <kolibroidamy@gmail.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.87"
+clap = { version = "4.5.4", features = ["derive"] }
+image = "0.25.1"
+term_size = "0.3.2"
+unicode-segmentation = "1.11.0"
+
+[profile.release]
+debug = true
