@@ -13,8 +13,19 @@ pub struct FlagPreset {
 /// Most non-pride flags (such as national flags) are probably better suited for image mode anyway.
 const FLAG_PRESETS: &[FlagPreset] = &[
     FlagPreset {
+        name: "Pride",
+        aliases: &["Rainbow"],
+        stripes: &hex_sequence([0xE40303, 0xFF8C00, 0xFFED00, 0x008026, 0x24408E, 0x732982]),
+    },
+    FlagPreset {
+        name: "Progress",
+        aliases: &[],
+        stripes: &hex_sequence([0xE40303, 0xFF8C00, 0xFFED00, 0x008026, 0x24408E, 0x732982, 0x222222, 0x7c3f00, 0x5BCEFA, 0xF5A9B8, 0xFFFFFF]),
+    },
+    // "Sapphic" has a separate flag - should the stripes for this flag be added? (perhaps ignoring the flowers)
+    FlagPreset {
         name: "Lesbian",
-        aliases: &["Saphic"],
+        aliases: &[],
         stripes: &hex_sequence([0xD52D00, 0xEF7627, 0xFF9A56, 0xFFFFFF, 0xD162A4, 0xB55690, 0xA30262]),
     },
     FlagPreset {
@@ -24,12 +35,12 @@ const FLAG_PRESETS: &[FlagPreset] = &[
     },
     FlagPreset {
         name: "Bi",
-        aliases: &["bisexual"],
+        aliases: &["Bisexual"],
         stripes: &hex_sequence([0xD60270, 0xD60270, 0x9B4F96, 0x0038A8, 0x0038A8]),
     },
     FlagPreset {
         name: "Trans",
-        aliases: &[],
+        aliases: &["Transgender"],
         stripes: &hex_sequence([0x5BCEFA, 0xF5A9B8, 0xFFFFFF, 0xF5A9B8, 0x5BCEFA]),
     },
 ];
