@@ -15,19 +15,20 @@ const ANSI_PALETTE: &[((u8, u8), Color)] = &[
     ((0, 37), Color(255, 255, 255)),
 ];
 
-
 /// Color index -> ansi color lookup table. Generated at runtime.
 static COLOR_LOOKUP: LazyLock<Vec<(u8, u8)>> = LazyLock::new(|| {
-    let mut lookup = vec![(0, 0); 256*256*256];
+    let mut lookup = vec![(0, 0); 256 * 256 * 256];
     for r in 0..=255u8 {
         for g in 0..=255u8 {
             for b in 0..=255u8 {
                 let this_col = Color(r, g, b);
                 let index = this_col.lookup_index();
 
-                lookup[index] = ANSI_PALETTE.iter().min_by_key(|(_, c)| {
-                    c.dist2(this_col)
-                }).expect("Palette is non-empty").0
+                lookup[index] = ANSI_PALETTE
+                    .iter()
+                    .min_by_key(|(_, c)| c.dist2(this_col))
+                    .expect("Palette is non-empty")
+                    .0
             }
         }
     }
@@ -35,11 +36,9 @@ static COLOR_LOOKUP: LazyLock<Vec<(u8, u8)>> = LazyLock::new(|| {
     lookup
 });
 
-
 /// A single rbg24 color
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color(u8, u8, u8);
-
 
 impl Color {
     pub const fn from_rgb(r: u8, g: u8, b: u8) -> Self {
@@ -55,7 +54,7 @@ impl Color {
         let dg = (self.1 as u32).abs_diff(other.1 as u32);
         let db = (self.2 as u32).abs_diff(other.2 as u32);
 
-        dr*dr + dg*dg + db*db
+        dr * dr + dg * dg + db * db
     }
 
     pub fn rgb_interpolate(self, Color(or, og, ob): Self, alpha: f32) -> Self {
@@ -74,28 +73,31 @@ impl Color {
     }
 
     pub fn write_as_24bit_ansi<O>(self, mut output: O) -> io::Result<()>
-        where O: io::Write {
+    where
+        O: io::Write,
+    {
         let Color(r, g, b) = self;
         write!(output, "\u{001B}[38;2;{r};{g};{b}m")
     }
 
     pub fn write_as_paletted_ansi<O>(self, mut output: O) -> io::Result<()>
-        where O: io::Write {
+    where
+        O: io::Write,
+    {
         // Find closest
-        let (a, b) = *COLOR_LOOKUP.get(self.lookup_index())
+        let (a, b) = *COLOR_LOOKUP
+            .get(self.lookup_index())
             .expect("All colors have corresponding palette value");
 
         write!(output, "\u{001B}[{a};{b}m")
     }
 }
 
-
 impl Default for Color {
     fn default() -> Self {
         Self::from_rgb(0, 0, 0)
     }
 }
-
 
 impl FromStr for Color {
     type Err = &'static str;
@@ -113,7 +115,6 @@ impl FromStr for Color {
         }
     }
 }
-
 
 impl Display for Color {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

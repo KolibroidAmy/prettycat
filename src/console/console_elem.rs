@@ -16,8 +16,6 @@ pub enum ConsoleElem<'a> {
     NonUTF8Data(u8),
 }
 
-
-
 /// Used internally by [IterElements], to track the amount of the slice that has been verified as
 /// a str, or confirmed to be invalid
 #[derive(Debug)]
@@ -27,12 +25,10 @@ enum KnownSegment<'a> {
     ValidUtf8(&'a str),
 }
 
-
 /// Used by [IterElements] to signal that the end of the slice is reached, and no new [ConsoleElement]s
 /// can be emitted. [IterElements::slop_bytes] should be used to determine how many bytes couldn't
 /// be consumed
 struct NeedMoreData;
-
 
 /// Used to iterate over the [ConsoleElement]s in a slice.
 /// true_end indicates that the stream ends immediately after the last byte in this buffer.
@@ -43,7 +39,6 @@ struct IterElements<'a> {
     known_segment: KnownSegment<'a>,
     true_end: bool,
 }
-
 
 impl<'a> IterElements<'a> {
     fn new(bytes: &'a [u8], true_end: bool) -> Self {
@@ -69,15 +64,15 @@ impl<'a> IterElements<'a> {
 
             Err(e) => {
                 if e.valid_up_to() > 0 {
-                    self.known_segment = KnownSegment::ValidUtf8(std::str::from_utf8(&self.remaining[..e.valid_up_to()]).unwrap());
+                    self.known_segment = KnownSegment::ValidUtf8(
+                        std::str::from_utf8(&self.remaining[..e.valid_up_to()]).unwrap(),
+                    );
                     self.consume(e.valid_up_to());
                     Ok(())
-
                 } else if let Some(len) = e.error_len() {
                     self.known_segment = KnownSegment::RawBytes(&self.remaining[..len]);
                     self.consume(len);
                     Ok(())
-
                 } else {
                     Err(NeedMoreData)
                 }
@@ -86,21 +81,19 @@ impl<'a> IterElements<'a> {
     }
 
     fn consume_from_utf8(&mut self) -> Result<ConsoleElem, NeedMoreData> {
-        let KnownSegment::ValidUtf8(mut remaining) =  self.known_segment
-            else {panic!()};
+        let KnownSegment::ValidUtf8(mut remaining) = self.known_segment else {
+            panic!()
+        };
 
         let r = if remaining.starts_with('\n') {
             remaining = &remaining[1..];
             Ok(ConsoleElem::Newline)
-
         } else if remaining.starts_with('\r') {
             remaining = &remaining[1..];
             Ok(ConsoleElem::CarriageReturn)
-
         } else if remaining.starts_with('\t') {
             remaining = &remaining[1..];
             Ok(ConsoleElem::Tab)
-
         } else if remaining.starts_with('\u{001B}') {
             let base = remaining;
             let mut length = 0;
@@ -122,17 +115,14 @@ impl<'a> IterElements<'a> {
             }
 
             Ok(ConsoleElem::Ansi(&base[0..length]))
-
         } else {
             let first_char = remaining.chars().next().ok_or(NeedMoreData)?;
             if first_char.is_ascii_control() {
                 remaining = &remaining[1..];
                 Ok(ConsoleElem::OtherNonPrinting(first_char))
-
             } else {
                 let mut graphemes = remaining.grapheme_indices(true);
-                let (_, grapheme) = graphemes.next()
-                    .ok_or(NeedMoreData)?;
+                let (_, grapheme) = graphemes.next().ok_or(NeedMoreData)?;
 
                 let next = graphemes.next();
 
@@ -161,19 +151,17 @@ impl<'a> IterElements<'a> {
         };
 
         r
-
     }
 
     /// Produce an element by consuming raw bytes from the known_segment
     /// requires that known_segment is [KnownSegment::RawBytes]
     fn consume_from_raw(&mut self) -> Result<ConsoleElem, NeedMoreData> {
-        let KnownSegment::RawBytes(mut remaining) = self.known_segment
-            else {panic!("consume_from_raw called when known_segment was not RawBytes")};
-
+        let KnownSegment::RawBytes(mut remaining) = self.known_segment else {
+            panic!("consume_from_raw called when known_segment was not RawBytes")
+        };
 
         let byte = remaining[0];
         remaining = &remaining[1..];
-
 
         self.known_segment = match remaining {
             [] => KnownSegment::None,
@@ -183,7 +171,6 @@ impl<'a> IterElements<'a> {
         Ok(ConsoleElem::NonUTF8Data(byte))
     }
 
-
     /// Attempts to return the next [ConsoleElement] from the slice
     fn try_get_next_element(&mut self) -> Result<ConsoleElem, NeedMoreData> {
         if matches!(&self.known_segment, KnownSegment::None) {
@@ -191,9 +178,11 @@ impl<'a> IterElements<'a> {
         }
 
         match &self.known_segment {
-            KnownSegment::None => unreachable!("try_fetch_next_known should set known_segment or else return Err(_)"),
+            KnownSegment::None => {
+                unreachable!("try_fetch_next_known should set known_segment or else return Err(_)")
+            }
             KnownSegment::RawBytes(_) => self.consume_from_raw(),
-            KnownSegment::ValidUtf8(_) => self.consume_from_utf8()
+            KnownSegment::ValidUtf8(_) => self.consume_from_utf8(),
         }
     }
 
@@ -204,18 +193,20 @@ impl<'a> IterElements<'a> {
     fn slop_bytes(&self) -> usize {
         // We have moved some of remaining to known_segment,
         // reconstruct what remaining would have been if we hadn't
-        self.remaining.len() + match self.known_segment {
-            KnownSegment::None => 0,
-            KnownSegment::RawBytes(x) => x.len(),
-            KnownSegment::ValidUtf8(x) => x.as_bytes().len(),
-        }
+        self.remaining.len()
+            + match self.known_segment {
+                KnownSegment::None => 0,
+                KnownSegment::RawBytes(x) => x.len(),
+                KnownSegment::ValidUtf8(x) => x.as_bytes().len(),
+            }
     }
 }
 
-
 pub fn for_each_console_element<R, F>(mut i: R, mut f: F) -> io::Result<()>
-    where R: Read,
-          F: FnMut(ConsoleElem<'_>) -> io::Result<()> {
+where
+    R: Read,
+    F: FnMut(ConsoleElem<'_>) -> io::Result<()>,
+{
     let mut buffer = vec![0; 256];
 
     let mut already_hit_end;
@@ -235,11 +226,11 @@ pub fn for_each_console_element<R, F>(mut i: R, mut f: F) -> io::Result<()>
                 }
                 let slop = iter.slop_bytes();
 
-                buffer.copy_within(last_end-slop.., 0);
+                buffer.copy_within(last_end - slop.., 0);
 
                 let amount = i.read(&mut buffer[slop..])?;
                 already_hit_end = amount == 0;
-                iter = IterElements::new(&buffer[..(slop+amount)], already_hit_end);
+                iter = IterElements::new(&buffer[..(slop + amount)], already_hit_end);
 
                 last_end = slop + amount;
             }
